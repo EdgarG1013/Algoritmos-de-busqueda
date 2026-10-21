@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador de Búsquedas IA</title>
+<meta name="description" content="Visualiza paso a paso Anchura, Profundidad, Costo uniforme, Avaro y A* sobre un grafo aleatorio.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<script src="js/app.js" defer></script>
+</head>
+<body>
+<header>
+  <div class="top">
+    <h1>🔍 Simulador de Búsquedas <small>Anchura · Profundidad · Costo uniforme · Avaro · A*</small></h1>
+    <a class="star" id="star" href="https://github.com/EdgarG1013/Algoritmos-de-b-squeda" target="_blank" rel="noopener"
+       title="Si te sirvió, dale una estrella al repositorio">
+      <span class="ico">★</span> Dale una estrella <span class="cnt" id="starCnt"></span>
+    </a>
+  </div>
+  <div class="toolbar">
+    <label class="field">Nodos <input id="nN" type="number" min="5" max="14" value="9"></label>
+    <label class="field">Semilla <input id="seed" type="number" value="" placeholder="aleatoria"></label>
+    <label class="field">Inicio <select id="sI"></select></label>
+    <label class="field">Meta <select id="sM"></select></label>
+    <label class="field wide">Algoritmo
+      <select id="alg">
+        <option value="bfs">Anchura (cola)</option>
+        <option value="dfs">Profundidad (pila)</option>
+        <option value="bfsG">Anchura + Abierta/Cerrada</option>
+        <option value="dfsG">Profundidad + Abierta/Cerrada</option>
+        <option value="ucs">Costo uniforme</option>
+        <option value="greedy">Avaro (Greedy)</option>
+        <option value="astar">A*</option>
+      </select>
+    </label>
+    <button id="gen" class="pri">🎲 Nuevo grafo</button>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Grafo</h2>
+    <svg id="svg" viewBox="0 0 700 480"></svg>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--cur)"></span>Expandiendo</span>
+      <span><span class="dot" style="background:var(--fr)"></span>En frontera</span>
+      <span><span class="dot" style="background:var(--cl)"></span>Expandido / cerrado</span>
+      <span><span class="dot" style="background:var(--ok)"></span>Ruta solución</span>
+      <span>Borde rojo = meta · h(n) bajo cada nodo</span>
+    </div>
+    <div class="player">
+      <button id="bFirst" title="Inicio">⏮</button>
+      <button id="bPrev" title="Paso anterior (←)">◀<span class="tx"> Paso</span></button>
+      <button id="bPlay" class="pri" title="Reproducir / pausa (espacio)">▶<span class="tx"> Reproducir</span></button>
+      <button id="bNext" title="Paso siguiente (→)"><span class="tx">Paso </span>▶</button>
+      <button id="bLast" title="Final">⏭</button>
+      <span id="stepLbl"></span>
+      <label class="speed">Velocidad <input id="spd" type="range" min="200" max="2500" value="1000" step="100"></label>
+    </div>
+    <div class="msg" id="msg"></div>
+  </section>
+
+  <section class="card">
+    <h2 id="algTitle">Estructuras</h2>
+    <div id="dsBox"></div>
+    <div class="stats">
+      <div class="stat">Expandidos<b id="stE">0</b></div>
+      <div class="stat">Creados<b id="stC">0</b></div>
+      <div class="stat">Paso<b id="stP">0</b></div>
+    </div>
+    <div class="res" id="res"></div>
+    <div class="lbl">Historial de pasos</div>
+    <div class="hist"><table id="hist"></table></div>
+  </section>
+
+  <section class="card full">
+    <h2>Árbol de búsqueda generado <button id="treeFit" class="mini">🔍 Tamaño real</button></h2>
+    <div class="treebox"><svg id="tree" class="fit"></svg></div>
+    <div class="legend">
+      <span><span class="dot" style="background:#fcd34d"></span>Expandiendo</span>
+      <span><span class="dot" style="background:#bfdbfe"></span>En frontera (hoja)</span>
+      <span><span class="dot" style="background:#d1d5db"></span>Expandido (#orden)</span>
+      <span><span class="dot" style="background:#fecaca"></span>Descartado / reemplazado</span>
+      <span><span class="dot" style="background:#bbf7d0"></span>Ruta solución</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Heurísticas (admisible: h(n) ≤ h*(n))</h2>
+    <div class="scroll"><table id="hTab"></table></div>
+  </section>
+  <section class="card">
+    <h2>Aristas y costos</h2>
+    <div id="eTab" class="edges"></div>
+  </section>
+</main>
+
+<footer>
+  Hecho para estudiar IA · ¿Te sirvió? <a href="https://github.com/EdgarG1013/Algoritmos-de-b-squeda" target="_blank" rel="noopener">★ Dale una estrella en GitHub</a>
+</footer>
+</body>
+</html>

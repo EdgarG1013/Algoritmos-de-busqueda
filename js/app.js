@@ -1,147 +1,3 @@
-<!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Simulador de Búsquedas IA</title>
-<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
-<style>
-  :root{--bg:#f5f6f8;--panel:#fff;--tx:#1d2330;--mut:#6b7280;--bd:#d9dde3;
-        --cur:#f59e0b;--fr:#3b82f6;--cl:#9ca3af;--ok:#16a34a;--goal:#dc2626;}
-  *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--tx)}
-  header{padding:12px 18px;background:#1d2330;color:#fff;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-  header h1{font-size:18px;margin:0 16px 0 0}
-  header label{font-size:13px}
-  select,input,button{font:inherit;font-size:13px;padding:5px 8px;border-radius:6px;border:1px solid var(--bd)}
-  button{cursor:pointer;background:#fff}
-  button.pri{background:#3b82f6;color:#fff;border-color:#3b82f6}
-  main{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:14px;padding:14px}
-  @media(max-width:900px){main{grid-template-columns:1fr}}
-  .card{background:var(--panel);border:1px solid var(--bd);border-radius:10px;padding:12px}
-  .card h2{font-size:14px;margin:0 0 8px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
-  svg{width:100%;height:auto;display:block}
-  .player{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px}
-  .msg{margin-top:8px;padding:8px;background:#eef2ff;border-radius:6px;font-size:14px;min-height:38px}
-  table{border-collapse:collapse;font-size:13px;width:100%}
-  th,td{border:1px solid var(--bd);padding:3px 6px;text-align:center}
-  th{background:#f0f2f5}
-  .ds{display:flex;flex-wrap:wrap;gap:4px;min-height:30px;align-items:center;padding:4px;border:1px dashed var(--bd);border-radius:6px}
-  .it{background:#dbeafe;border:1px solid #93c5fd;border-radius:5px;padding:2px 6px;font-size:12px;font-family:Consolas,monospace}
-  .it.first{background:#fde68a;border-color:#f59e0b;font-weight:bold}
-  .it.cl{background:#e5e7eb;border-color:#9ca3af}
-  .lbl{font-size:12px;color:var(--mut);margin:8px 0 3px}
-  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
-  .stat{background:#f0f2f5;border-radius:6px;padding:6px;text-align:center}
-  .stat b{display:block;font-size:20px}
-  .res{margin-top:8px;padding:8px;border-radius:6px;background:#dcfce7;border:1px solid #86efac;font-size:14px;display:none}
-  /* ---- notación tipo cuaderno (como el profe) ---- */
-  .nb{font-family:'Patrick Hand','Comic Sans MS',cursive;font-size:22px;color:#2b2f3a;
-      background-color:#fff;background-image:linear-gradient(#e6e9ee 1px,transparent 1px),linear-gradient(90deg,#e6e9ee 1px,transparent 1px);
-      background-size:18px 18px;border:1px solid var(--bd);border-radius:8px;padding:10px 14px}
-  .nbcols{display:grid;grid-template-columns:auto 1fr;gap:0}
-  .nbcols.one{grid-template-columns:auto}
-  .nbcol{padding:0 14px 0 4px;min-width:0}
-  .nbcol+.nbcol{border-left:2px solid #2b2f3a;padding-left:12px}
-  .nbh{font-size:20px;color:#555;margin-bottom:4px;white-space:nowrap}
-  .rows{display:inline-block;overflow-x:auto;max-width:100%}
-  .rows.stack .row{text-align:right}
-  .row{white-space:nowrap;line-height:1.35;min-height:1.35em}
-  .row .c{display:inline-block;min-width:.85em;text-align:center}
-  .row .t{display:inline-block;margin-right:2px}
-  .tach{text-decoration:line-through;text-decoration-thickness:2px;color:#7a7f8a}
-  .goal{color:#15803d;font-weight:bold;border:2px solid #15803d;border-radius:50%;padding:0 3px}
-  .row.now{background:#fef3c7}
-  .clist{word-break:break-word}
-  .nbbox{display:inline-block;border:2px solid #2b2f3a;padding:2px 10px;margin:10px 0 4px;font-size:20px;line-height:1.3}
-  .nbans{font-size:21px;margin-top:6px}
-  .legend{font-size:12px;color:var(--mut);display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}
-  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:middle}
-  .hist{max-height:220px;overflow:auto;font-size:12px}
-  .hist td{text-align:left;font-family:Consolas,monospace}
-  .hist tr.on{background:#fef3c7}
-</style>
-</head>
-<body>
-<header>
-  <h1>🔍 Simulador de Búsquedas</h1>
-  <label>Nodos <input id="nN" type="number" min="5" max="14" value="9" style="width:55px"></label>
-  <label>Semilla <input id="seed" type="number" value="" placeholder="aleatoria" style="width:95px"></label>
-  <button id="gen" class="pri">🎲 Nuevo grafo</button>
-  <label>Inicio <select id="sI"></select></label>
-  <label>Meta <select id="sM"></select></label>
-  <label>Algoritmo
-    <select id="alg">
-      <option value="bfs">Anchura (cola)</option>
-      <option value="dfs">Profundidad (pila)</option>
-      <option value="bfsG">Anchura + Abierta/Cerrada</option>
-      <option value="dfsG">Profundidad + Abierta/Cerrada</option>
-      <option value="ucs">Costo uniforme</option>
-      <option value="greedy">Avaro (Greedy)</option>
-      <option value="astar">A*</option>
-    </select>
-  </label>
-</header>
-
-<main>
-  <section class="card">
-    <h2>Grafo</h2>
-    <svg id="svg" viewBox="0 0 700 480"></svg>
-    <div class="legend">
-      <span><span class="dot" style="background:var(--cur)"></span>Expandiendo</span>
-      <span><span class="dot" style="background:var(--fr)"></span>En frontera</span>
-      <span><span class="dot" style="background:var(--cl)"></span>Expandido / cerrado</span>
-      <span><span class="dot" style="background:var(--ok)"></span>Ruta solución</span>
-      <span>Doble borde rojo = meta · h(n) bajo cada nodo</span>
-    </div>
-    <div class="player">
-      <button id="bFirst">⏮</button>
-      <button id="bPrev">◀ Paso</button>
-      <button id="bPlay" class="pri">▶ Reproducir</button>
-      <button id="bNext">Paso ▶</button>
-      <button id="bLast">⏭</button>
-      <label style="font-size:13px">Velocidad <input id="spd" type="range" min="200" max="2500" value="1000" step="100" style="vertical-align:middle"></label>
-      <span id="stepLbl" style="font-size:13px;color:var(--mut)"></span>
-    </div>
-    <div class="msg" id="msg"></div>
-  </section>
-
-  <section class="card">
-    <h2 id="algTitle">Estructuras</h2>
-    <div id="dsBox"></div>
-    <div class="stats">
-      <div class="stat">Expandidos<b id="stE">0</b></div>
-      <div class="stat">Creados<b id="stC">0</b></div>
-      <div class="stat">Paso<b id="stP">0</b></div>
-    </div>
-    <div class="res" id="res"></div>
-    <div class="lbl">Historial de pasos</div>
-    <div class="hist"><table id="hist"></table></div>
-  </section>
-
-  <section class="card" style="grid-column:1/-1">
-    <h2>Árbol de búsqueda generado</h2>
-    <div style="overflow:auto;max-height:560px"><svg id="tree" style="width:auto"></svg></div>
-    <div class="legend">
-      <span><span class="dot" style="background:#fcd34d"></span>Expandiendo</span>
-      <span><span class="dot" style="background:#bfdbfe"></span>En frontera (hoja)</span>
-      <span><span class="dot" style="background:#d1d5db"></span>Expandido (#orden)</span>
-      <span><span class="dot" style="background:#fecaca"></span>Descartado / reemplazado</span>
-      <span><span class="dot" style="background:#bbf7d0"></span>Ruta solución</span>
-    </div>
-  </section>
-
-  <section class="card">
-    <h2>Tabla de heurísticas (admisible: h(n) ≤ h*(n))</h2>
-    <table id="hTab"></table>
-  </section>
-  <section class="card">
-    <h2>Aristas y costos</h2>
-    <div id="eTab" style="font-family:Consolas,monospace;font-size:13px;columns:3"></div>
-  </section>
-</main>
-
-<script>
 // ---------- RNG con semilla ----------
 let rnd = Math.random;
 function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -309,7 +165,7 @@ function dibujar(st){
 }
 
 // ---------- Árbol de búsqueda ----------
-let TP=null; // posiciones del árbol completo (estables entre pasos)
+let TP=null, treeFit=true; // posiciones del árbol completo (estables entre pasos)
 function layoutArbol(T){
   const ch=T.map(()=>[]); T.forEach(t=>{ if(t.p>=0) ch[t.p].push(t.id); });
   const pos={}; let leaf=0, maxD=0;
@@ -349,7 +205,10 @@ function dibujarArbol(st,alg){
     if(bad.has(i)) s+=`<text x="${X(i)}" y="${Y(i)+5}" font-size="26" text-anchor="middle" fill="#dc2626" opacity=".6">✕</text>`;
   }
   const svg=$('tree'); svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
-  svg.setAttribute('width',Math.max(W,300)); svg.setAttribute('height',H); svg.innerHTML=s;
+  // "ajustar": el árbol se encoge para caber en la pantalla (sin agrandarse más de su tamaño real)
+  if(treeFit){ svg.removeAttribute('width'); svg.removeAttribute('height'); svg.style.maxWidth=W+'px'; }
+  else { svg.setAttribute('width',W); svg.setAttribute('height',H); svg.style.maxWidth='none'; }
+  svg.classList.toggle('fit',treeFit); svg.innerHTML=s;
 }
 
 // ---------- Notación del profe ----------
@@ -426,11 +285,11 @@ function mostrar(){
   const on=$('hist').querySelector('tr.on'); if(on) on.scrollIntoView({block:'nearest'});
 }
 
-function parar(){ clearInterval(timer); timer=null; $('bPlay').textContent='▶ Reproducir'; }
+function parar(){ clearInterval(timer); timer=null; $('bPlay').innerHTML='▶<span class="tx"> Reproducir</span>'; }
 function play(){
   if(timer){parar();return;}
   if(k>=steps.length-1) k=0;
-  $('bPlay').textContent='⏸ Pausa';
+  $('bPlay').innerHTML='⏸<span class="tx"> Pausa</span>';
   const tick=()=>{ if(k<steps.length-1){k++;mostrar();} else parar(); };
   timer=setInterval(tick,+$('spd').value);
 }
@@ -450,7 +309,18 @@ document.addEventListener('keydown',e=>{
   if(e.key==='ArrowLeft') $('bPrev').click();
   if(e.key===' '){e.preventDefault();play();}
 });
+$('treeFit').onclick=()=>{
+  treeFit=!treeFit;
+  $('treeFit').textContent= treeFit ? '🔍 Tamaño real' : '↔ Ajustar a pantalla';
+  dibujarArbol(steps[k],$('alg').value);
+};
+// por defecto se ajusta en móvil y se ve a tamaño real en pantallas grandes
+if(window.innerWidth>900){ treeFit=false; $('treeFit').textContent='↔ Ajustar a pantalla'; }
+
+// contador de estrellas del repo (si la API de GitHub no responde, solo se oculta)
+fetch('https://api.github.com/repos/EdgarG1013/Algoritmos-de-b-squeda')
+  .then(r=>r.ok?r.json():null)
+  .then(d=>{ if(d&&typeof d.stargazers_count==='number'){ const c=$('starCnt'); c.textContent=d.stargazers_count; c.classList.add('on'); } })
+  .catch(()=>{});
+
 generar();
-</script>
-</body>
-</html>
