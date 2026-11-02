@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Simulador de Búsquedas IA</title>
-<meta name="description" content="Visualiza paso a paso Anchura, Profundidad, Costo uniforme, Avaro y A* sobre un grafo aleatorio.">
+<meta name="description" content="Visualiza paso a paso Anchura, Profundidad, Costo uniforme, Avaro y A* sobre un grafo aleatorio o creado por ti.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
@@ -42,7 +42,21 @@
 
 <main>
   <section class="card">
-    <h2>Grafo</h2>
+    <h2>Grafo <button id="edToggle" class="mini">✏️ Editar grafo</button></h2>
+    <div id="edBar" class="edbar" hidden>
+      <div class="edhint">Clic en espacio vacío: <b>nuevo nodo</b> · Arrastrar nodo: <b>moverlo</b> ·
+        Clic en un nodo y luego en otro: <b>arista</b> · Clic en nodo o costo: <b>editar</b> ·
+        <kbd>Supr</kbd>: borrar · <kbd>Esc</kbd>: soltar selección</div>
+      <div id="edSel" class="edsel"></div>
+      <div class="edtools">
+        <button id="edClear" class="mini danger">🧹 Grafo vacío</button>
+        <button id="edH" class="mini">🎲 h admisibles aleatorias</button>
+        <button id="edH0" class="mini">h = 0 en todos</button>
+        <button id="edExp" class="mini">💾 Exportar</button>
+        <label class="mini btn">📂 Importar<input id="edImp" type="file" accept=".json,application/json" hidden></label>
+        <span id="edMsg" class="err"></span>
+      </div>
+    </div>
     <svg id="svg" viewBox="0 0 700 480"></svg>
     <div class="legend">
       <span><span class="dot" style="background:var(--cur)"></span>Expandiendo</span>
@@ -91,9 +105,11 @@
   <section class="card">
     <h2>Heurísticas (admisible: h(n) ≤ h*(n))</h2>
     <div class="scroll"><table id="hTab"></table></div>
+    <div id="hMsg" class="hmsg"></div>
+    <div class="note">Puedes escribir tus propias h(n). En rojo: valores no admisibles.</div>
   </section>
   <section class="card">
-    <h2>Aristas y costos</h2>
+    <h2>Aristas y costos (editables)</h2>
     <div id="eTab" class="edges"></div>
   </section>
 </main>
