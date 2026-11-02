@@ -5,59 +5,115 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Simulador de Búsquedas IA</title>
 <meta name="description" content="Visualiza paso a paso Anchura, Profundidad, Costo uniforme, Avaro y A* sobre un grafo aleatorio o creado por ti.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='6' fill='%231d2330'/><g stroke='%2393c5fd' stroke-width='1.8' stroke-linecap='round'><path d='M8 7.3 15.9 8.6M7 9.2l1.5 6.4M16.4 10.7l-5.6 6'/></g><g fill='%23fff'><circle cx='6.5' cy='7' r='2.3'/><circle cx='17.5' cy='9' r='2.3'/><circle cx='9.5' cy='17.5' r='2.3'/></g></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
 <script src="js/app.js" defer></script>
 </head>
 <body>
+<!-- Íconos (SVG en línea: sin dependencias externas) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-logo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 7.3 15.9 8.6M7 9.2l1.5 6.4M16.4 10.7l-5.6 6"/></g><g fill="#fff"><circle cx="6.5" cy="7" r="2.4"/><circle cx="17.5" cy="9" r="2.4"/><circle cx="9.5" cy="17.5" r="2.4"/></g></symbol>
+    <symbol id="i-dice" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><g fill="currentColor"><circle cx="8.5" cy="8.5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="15.5" cy="15.5" r="1.4"/></g></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><g fill="currentColor"><rect x="6.5" y="5" width="4" height="14" rx="1.2"/><rect x="13.5" y="5" width="4" height="14" rx="1.2"/></g></symbol>
+    <symbol id="i-first" viewBox="0 0 24 24"><path d="M18 6v12l-8.5-6z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.5 5.5v13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-last" viewBox="0 0 24 24"><path d="M6 6v12l8.5-6z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M17.5 5.5v13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-prev" viewBox="0 0 24 24"><path d="M14.5 6 8.5 12l6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="m9.5 6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.8 2.8 0 0 0-4-4L4 16z"/><path d="m13 7 4 4"/></g></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></g></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11m0-11-11 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l.9 11.6a2 2 0 0 0 2 1.9h5.2a2 2 0 0 0 2-1.9L17.5 7M10 11v5.5M14 11v5.5"/></g></symbol>
+    <symbol id="i-blank" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="3.5" width="15" height="17" rx="2.5"/><path d="M12 9v6M9 12h6"/></g></symbol>
+    <symbol id="i-shuffle" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h3c4.5 0 6.5 10 11 10h3.5M3 17h3c1.7 0 3-1.4 4-3.2M13.8 9.6C14.8 8 16 7 17.5 7h3"/><path d="m18 4 3 3-3 3M18 14l3 3-3 3"/></g></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></g></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5M7 9.5l5-5 5 5M5 20h14"/></g></symbol>
+    <symbol id="i-flag" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 21V4M5.5 4.5h11l-2.2 4 2.2 4h-11"/></g></symbol>
+    <symbol id="i-start" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3.2 2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17.1 6.6 20l1.1-6.1-4.5-4.3 6.1-.8z" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-zoom" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5M8 10.5h5M10.5 8v5"/></g></symbol>
+    <symbol id="i-fit" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></g></symbol>
+  </defs>
+</svg>
+
 <header>
   <div class="top">
-    <h1>🔍 Simulador de Búsquedas <small>Anchura · Profundidad · Costo uniforme · Avaro · A*</small></h1>
+    <div class="brand">
+      <span class="logo"><svg class="i"><use href="#i-logo"/></svg></span>
+      <div>
+        <h1>Simulador de búsquedas</h1>
+        <p>Anchura · Profundidad · Costo uniforme · Avaro · A*</p>
+      </div>
+    </div>
     <a class="star" id="star" href="https://github.com/EdgarG1013/Algoritmos-de-b-squeda" target="_blank" rel="noopener"
        title="Si te sirvió, dale una estrella al repositorio">
-      <span class="ico">★</span> Dale una estrella <span class="cnt" id="starCnt"></span>
+      <svg class="i ico"><use href="#i-star"/></svg> Dale una estrella <span class="cnt" id="starCnt"></span>
     </a>
   </div>
   <div class="toolbar">
-    <label class="field">Nodos <input id="nN" type="number" min="5" max="14" value="9"></label>
-    <label class="field">Semilla <input id="seed" type="number" value="" placeholder="aleatoria"></label>
-    <label class="field">Inicio <select id="sI"></select></label>
-    <label class="field">Meta <select id="sM"></select></label>
-    <label class="field wide">Algoritmo
-      <select id="alg">
-        <option value="bfs">Anchura (cola)</option>
-        <option value="dfs">Profundidad (pila)</option>
-        <option value="bfsG">Anchura + Abierta/Cerrada</option>
-        <option value="dfsG">Profundidad + Abierta/Cerrada</option>
-        <option value="ucs">Costo uniforme</option>
-        <option value="greedy">Avaro (Greedy)</option>
-        <option value="astar">A*</option>
-      </select>
-    </label>
-    <button id="gen" class="pri">🎲 Nuevo grafo</button>
+    <div class="grp" role="group" aria-labelledby="gGen">
+      <span class="gcap" id="gGen">Grafo aleatorio</span>
+      <div class="grow">
+        <label class="field">Nodos <input id="nN" type="number" min="5" max="14" value="9"></label>
+        <label class="field">Semilla <input id="seed" type="number" value="" placeholder="aleatoria"></label>
+        <button id="gen" class="pri"><svg class="i"><use href="#i-dice"/></svg>Nuevo grafo</button>
+      </div>
+    </div>
+    <div class="grp" role="group" aria-labelledby="gBus">
+      <span class="gcap" id="gBus">Búsqueda</span>
+      <div class="grow">
+        <label class="field">Inicio <select id="sI"></select></label>
+        <label class="field">Meta <select id="sM"></select></label>
+        <label class="field wide">Algoritmo
+          <select id="alg">
+            <option value="bfs">Anchura (cola)</option>
+            <option value="dfs">Profundidad (pila)</option>
+            <option value="bfsG">Anchura + Abierta/Cerrada</option>
+            <option value="dfsG">Profundidad + Abierta/Cerrada</option>
+            <option value="ucs">Costo uniforme</option>
+            <option value="greedy">Avaro (Greedy)</option>
+            <option value="astar">A*</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <div class="grp mode-grp" role="group" aria-labelledby="gMod">
+      <span class="gcap" id="gMod">Modo</span>
+      <div class="mode">
+        <button id="mView" aria-pressed="true"><svg class="i"><use href="#i-eye"/></svg>Ver</button>
+        <button id="mEdit" aria-pressed="false"><svg class="i"><use href="#i-pencil"/></svg>Editar</button>
+      </div>
+    </div>
   </div>
 </header>
 
 <main>
-  <section class="card">
-    <h2>Grafo <button id="edToggle" class="mini">✏️ Editar grafo</button></h2>
+  <section class="card ed">
+    <h2>Grafo <button class="mini ghost" data-edit><svg class="i"><use href="#i-pencil"/></svg>Editar</button></h2>
     <div id="edBar" class="edbar" hidden>
-      <div class="edhint">Clic en espacio vacío: <b>nuevo nodo</b> · Arrastrar nodo: <b>moverlo</b> ·
-        Clic en un nodo y luego en otro: <b>arista</b> · Clic en nodo o costo: <b>editar</b> ·
-        <kbd>Supr</kbd>: borrar · <kbd>Esc</kbd>: soltar selección</div>
-      <div id="edSel" class="edsel"></div>
+      <span class="chip"><span class="pulse"></span>Editando</span>
+      <span id="edHint" class="edhint"></span>
       <div class="edtools">
-        <button id="edClear" class="mini danger">🧹 Grafo vacío</button>
-        <button id="edH" class="mini">🎲 h admisibles aleatorias</button>
-        <button id="edH0" class="mini">h = 0 en todos</button>
-        <button id="edExp" class="mini">💾 Exportar</button>
-        <label class="mini btn">📂 Importar<input id="edImp" type="file" accept=".json,application/json" hidden></label>
-        <span id="edMsg" class="err"></span>
+        <button id="edH" class="mini" title="Generar heurísticas admisibles aleatorias"><svg class="i"><use href="#i-shuffle"/></svg>h aleatorias</button>
+        <button id="edH0" class="mini" title="Poner h(n) = 0 en todos los nodos">h = 0</button>
+        <button id="edClear" class="mini" title="Borrar todo y empezar un grafo vacío"><svg class="i"><use href="#i-blank"/></svg>Vaciar</button>
+        <span class="sep"></span>
+        <button id="edExp" class="mini" title="Descargar el grafo como .json"><svg class="i"><use href="#i-download"/></svg><span class="tx">Exportar</span></button>
+        <label class="mini btn" title="Cargar un grafo .json"><svg class="i"><use href="#i-upload"/></svg><span class="tx">Importar</span><input id="edImp" type="file" accept=".json,application/json" hidden></label>
+        <button id="edDone" class="mini pri"><svg class="i"><use href="#i-check"/></svg>Listo</button>
       </div>
     </div>
-    <svg id="svg" viewBox="0 0 700 480"></svg>
+    <div class="canvas" id="canvas">
+      <svg id="svg" viewBox="0 0 700 480"></svg>
+      <div id="empty" class="empty" hidden></div>
+      <div id="insp" class="insp" hidden></div>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    </div>
     <div class="legend">
       <span><span class="dot" style="background:var(--cur)"></span>Expandiendo</span>
       <span><span class="dot" style="background:var(--fr)"></span>En frontera</span>
@@ -66,11 +122,11 @@
       <span>Borde rojo = meta · h(n) bajo cada nodo</span>
     </div>
     <div class="player">
-      <button id="bFirst" title="Inicio">⏮</button>
-      <button id="bPrev" title="Paso anterior (←)">◀<span class="tx"> Paso</span></button>
-      <button id="bPlay" class="pri" title="Reproducir / pausa (espacio)">▶<span class="tx"> Reproducir</span></button>
-      <button id="bNext" title="Paso siguiente (→)"><span class="tx">Paso </span>▶</button>
-      <button id="bLast" title="Final">⏭</button>
+      <button id="bFirst" title="Inicio" aria-label="Ir al inicio"><svg class="i"><use href="#i-first"/></svg></button>
+      <button id="bPrev" title="Paso anterior (←)"><svg class="i"><use href="#i-prev"/></svg><span class="tx">Paso</span></button>
+      <button id="bPlay" class="pri" title="Reproducir / pausa (espacio)"></button>
+      <button id="bNext" title="Paso siguiente (→)"><span class="tx">Paso</span><svg class="i"><use href="#i-next"/></svg></button>
+      <button id="bLast" title="Final" aria-label="Ir al final"><svg class="i"><use href="#i-last"/></svg></button>
       <span id="stepLbl"></span>
       <label class="speed">Velocidad <input id="spd" type="range" min="200" max="2500" value="1000" step="100"></label>
     </div>
@@ -91,7 +147,7 @@
   </section>
 
   <section class="card full">
-    <h2>Árbol de búsqueda generado <button id="treeFit" class="mini">🔍 Tamaño real</button></h2>
+    <h2>Árbol de búsqueda generado <button id="treeFit" class="mini"></button></h2>
     <div class="treebox"><svg id="tree" class="fit"></svg></div>
     <div class="legend">
       <span><span class="dot" style="background:#fcd34d"></span>Expandiendo</span>
@@ -102,20 +158,19 @@
     </div>
   </section>
 
-  <section class="card">
-    <h2>Heurísticas (admisible: h(n) ≤ h*(n))</h2>
+  <section class="card ed">
+    <h2>Heurísticas (admisible: h(n) ≤ h*(n)) <button class="mini ghost" data-edit><svg class="i"><use href="#i-pencil"/></svg>Editar</button></h2>
     <div class="scroll"><table id="hTab"></table></div>
     <div id="hMsg" class="hmsg"></div>
-    <div class="note">Puedes escribir tus propias h(n). En rojo: valores no admisibles.</div>
   </section>
-  <section class="card">
-    <h2>Aristas y costos (editables)</h2>
-    <div id="eTab" class="edges"></div>
+  <section class="card ed">
+    <h2>Aristas y costos <button class="mini ghost" data-edit><svg class="i"><use href="#i-pencil"/></svg>Editar</button></h2>
+    <div id="eTab"></div>
   </section>
 </main>
 
 <footer>
-  Hecho para estudiar IA · ¿Te sirvió? <a href="https://github.com/EdgarG1013/Algoritmos-de-b-squeda" target="_blank" rel="noopener">★ Dale una estrella en GitHub</a>
+  Hecho para estudiar IA · ¿Te sirvió? <a href="https://github.com/EdgarG1013/Algoritmos-de-b-squeda" target="_blank" rel="noopener">Dale una estrella en GitHub</a>
 </footer>
 </body>
 </html>

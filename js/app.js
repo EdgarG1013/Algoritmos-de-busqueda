@@ -88,6 +88,7 @@ function actualizar(origen){
   if(origen!=='hTab') tablaH(); else marcarH();
   if(origen!=='eTab') tablaE();
   if(origen!=='sel') panelSel();
+  estadoVacio();
   guardar();
   correr();
 }
@@ -96,8 +97,11 @@ function actualizar(origen){
 function tablaH(){
   const ns=G.names;
   if(!ns.length){ $('hTab').innerHTML='<tr><td class="mut">Grafo vacío</td></tr>'; $('hMsg').innerHTML=''; return; }
+  // las h solo son editables en modo edición
+  const celda = v => edit ? `<td><input class="hin" type="number" min="0" step="any" data-h="${v}" value="${G.h[v]}" aria-label="h(${v})"></td>`
+                          : `<td class="${G.h[v]>G.hs[v]?'badc':''}"><b>${G.h[v]}</b></td>`;
   $('hTab').innerHTML=`<tr><th>Nodo</th>${ns.map(v=>`<th>${v}</th>`).join('')}</tr>
-    <tr><td><b>h(n)</b></td>${ns.map(v=>`<td><input class="hin" type="number" min="0" step="any" data-h="${v}" value="${G.h[v]}"></td>`).join('')}</tr>
+    <tr><td><b>h(n)</b></td>${ns.map(celda).join('')}</tr>
     <tr><td style="color:var(--mut)">h*(n) real</td>${ns.map(v=>`<td style="color:var(--mut)">${num(G.hs[v])}</td>`).join('')}</tr>`;
   marcarH();
 }
@@ -114,6 +118,7 @@ function marcarH(){
                        : `<div class="ok">✔ Todas las h son admisibles.</div>`;
   if(noCons.length) m+=`<div class="warn">⚠ No consistente en: ${noCons.join(', ')} (h(n) &gt; c(n,n') + h(n')). Con lista cerrada A* podría no dar la ruta óptima.</div>`;
   if(meta&&G.h[meta]!==0) m+=`<div class="warn">⚠ h(${meta}) debería ser 0 por ser la meta.</div>`;
+  if(edit) m+=`<div class="note">Escribe tus propias h(n); en rojo, las que no son admisibles.</div>`;
   $('hMsg').innerHTML=m;
 }
 $('hTab').addEventListener('input',e=>{
@@ -124,15 +129,21 @@ $('hTab').addEventListener('input',e=>{
 });
 
 function tablaE(){
+  if(!edit){   // solo lectura
+    $('eTab').innerHTML = G.edges.length
+      ? `<div class="elist ro">${G.edges.map(([a,b,c])=>`<div class="erow"><span>${a} — ${b}</span><b>${c}</b></div>`).join('')}</div>`
+      : '<div class="mut">Sin aristas.</div>';
+    return;
+  }
   const op=G.names.map(v=>`<option>${v}</option>`).join('');
   const prev=[$('eA')?.value,$('eB')?.value,$('eC')?.value];
   $('eTab').innerHTML=(G.edges.length
       ? `<div class="elist">${G.edges.map(([a,b,c])=>`<div class="erow"><span>${a} — ${b}</span>
-          <input type="number" min="0" step="any" value="${c}" data-a="${a}" data-b="${b}">
-          <button class="mini x" data-del="${a}" data-del2="${b}" title="Borrar arista">✕</button></div>`).join('')}</div>`
+          <input type="number" min="0" step="any" value="${c}" data-a="${a}" data-b="${b}" aria-label="Costo ${a}–${b}">
+          <button class="mini x" data-del="${a}" data-del2="${b}" title="Borrar arista ${a}–${b}" aria-label="Borrar arista ${a}–${b}">${ic('x')}</button></div>`).join('')}</div>`
       : '<div class="mut">Sin aristas.</div>')
-    +`<div class="eadd">Nueva arista: <select id="eA">${op}</select> — <select id="eB">${op}</select>
-      costo <input id="eC" type="number" min="0" step="any" value="1"> <button id="eAdd" class="mini">＋ Agregar</button>
+    +`<div class="eadd">Nueva arista: <select id="eA" aria-label="Desde">${op}</select> — <select id="eB" aria-label="Hasta">${op}</select>
+      costo <input id="eC" type="number" min="0" step="any" value="1" aria-label="Costo"> <button id="eAdd" class="mini">${ic('plus')}Agregar</button>
       <span id="eMsg" class="err"></span></div>`;
   if(G.names.includes(prev[0])) $('eA').value=prev[0];
   if(G.names.includes(prev[1])) $('eB').value=prev[1]; else if(G.names[1]) $('eB').value=G.names[1];
@@ -146,7 +157,7 @@ $('eTab').addEventListener('input',e=>{
   G.adj[a][b]=G.adj[b][a]=c; actualizar('eTab');
 });
 $('eTab').addEventListener('click',e=>{
-  const t=e.target;
+  const t=e.target.closest('button'); if(!t) return;
   if(t.dataset.del){ borrarArista(t.dataset.del,t.dataset.del2); return; }
   if(t.id==='eAdd'){
     const a=$('eA').value, b=$('eB').value, c=parseFloat($('eC').value);
@@ -158,24 +169,53 @@ $('eTab').addEventListener('click',e=>{
 });
 
 // ---------- Editor del grafo ----------
-let edit=false, sel=null, drag=null;   // sel: {t:'n',v} | {t:'e',a,b}
+let edit=false, sel=null, drag=null, cursor=null;   // sel: {t:'n',v} | {t:'e',a,b}; cursor: punta de la arista "fantasma"
+const ic = n=>`<svg class="i" aria-hidden="true"><use href="#i-${n}"/></svg>`;
 
-function aviso(t){ $('edMsg').textContent=t; clearTimeout(aviso.t); aviso.t=setTimeout(()=>$('edMsg').textContent='',4000); }
+function setModo(on){
+  edit=on; if(!on){ sel=null; cursor=null; }
+  document.body.classList.toggle('editing',on);
+  $('mView').setAttribute('aria-pressed',String(!on)); $('mEdit').setAttribute('aria-pressed',String(on));
+  $('edBar').hidden=!on; $('svg').classList.toggle('editing',on);
+  tablaH(); tablaE(); panelSel(); estadoVacio(); dibujar(steps[k]);
+}
+$('mView').onclick=()=>setModo(false);
+$('mEdit').onclick=()=>setModo(true);
+$('edDone').onclick=()=>setModo(false);
+document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>setModo(true));
+
+function aviso(t){ const el=$('toast'); el.textContent=t; el.classList.add('on'); clearTimeout(aviso.t); aviso.t=setTimeout(()=>el.classList.remove('on'),3500); }
 function seleccionar(s){ sel=s; panelSel(); dibujar(steps[k]); }
 
+// indicación contextual: dice qué hacer según lo que esté seleccionado
+function pista(){
+  $('edHint').innerHTML = !G.names.length ? 'Haz <b>clic en el lienzo</b> para crear el primer nodo.'
+    : !sel ? '<b>Clic</b> en el lienzo: nuevo nodo · <b>Arrastra</b> un nodo para moverlo · <b>Clic</b> en un nodo o costo para editarlo'
+    : sel.t==='n' ? `<b>Clic en otro nodo</b> para unirlo con ${sel.v} · <kbd>Supr</kbd> borra · <kbd>Esc</kbd> cancela`
+    : `Escribe el costo de ${sel.a}–${sel.b} · <kbd>Supr</kbd> borra la arista · <kbd>Esc</kbd> cancela`;
+}
+function estadoVacio(){
+  const el=$('empty'); el.hidden=G.names.length>0;
+  el.innerHTML = edit ? '<div><b>Lienzo vacío</b>Haz clic en cualquier parte para crear el primer nodo.</div>'
+                      : '<div><b>Grafo vacío</b>Cambia a modo Editar para dibujar el tuyo.</div>';
+}
+
+// inspector flotante junto al nodo / arista seleccionado
 function panelSel(){
-  const box=$('edSel');
+  const box=$('insp');
   if(sel&&sel.t==='n'&&!G.names.includes(sel.v)) sel=null;
   if(sel&&sel.t==='e'&&G.adj[sel.a]?.[sel.b]===undefined) sel=null;
-  if(!sel){ box.innerHTML='<span class="mut">Nada seleccionado.</span>'; return; }
+  if(edit) pista();
+  if(!edit||!sel){ box.hidden=true; return; }
+  box.hidden=false;
   if(sel.t==='n'){
-    const v=sel.v;
-    box.innerHTML=`<b>Nodo ${v}</b>
-      <label>Nombre <input id="selName" value="${v}" maxlength="3"></label>
-      <label>h(n) <input id="selH" type="number" min="0" step="any" value="${G.h[v]}"></label>
-      <button id="selIni" class="mini">🟢 Inicio</button><button id="selMeta" class="mini">🎯 Meta</button>
-      <button id="selDel" class="mini danger">🗑 Borrar nodo</button>
-      <span class="mut">Clic en otro nodo para unirlos.</span>`;
+    const v=sel.v, ini=$('sI').value===v, meta=$('sM').value===v;
+    box.innerHTML=`<div class="ih"><b>Nodo ${v}</b><button class="ix" id="iClose" aria-label="Cerrar (Esc)">${ic('x')}</button></div>
+      <div class="if"><label>Nombre<input id="selName" value="${v}" maxlength="3" autocomplete="off"></label>
+        <label>h(n)<input id="selH" type="number" min="0" step="any" value="${G.h[v]}"></label></div>
+      <div class="ia"><button id="selIni" class="mini ${ini?'act':''}" aria-pressed="${ini}">${ic('start')}Inicio</button>
+        <button id="selMeta" class="mini ${meta?'act':''}" aria-pressed="${meta}">${ic('flag')}Meta</button>
+        <button id="selDel" class="mini danger" title="Borrar nodo (Supr)" aria-label="Borrar nodo">${ic('trash')}</button></div>`;
     $('selName').onchange=e=>{
       const nu=e.target.value.trim();
       if(!renombrar(v,nu)){ e.target.classList.add('bad');
@@ -186,21 +226,37 @@ function panelSel(){
       if(isNaN(x)||x<0){ e.target.classList.add('bad'); return; }
       e.target.classList.remove('bad'); G.h[v]=x; G.hAuto=false; actualizar('sel');
     };
-    $('selIni').onclick=()=>{ $('sI').value=v; $('sI').onchange(); };
+    $('selIni').onclick=()=>{ $('sI').value=v; $('sI').onchange(); panelSel(); };
     $('selMeta').onclick=()=>{ $('sM').value=v; $('sM').onchange(); };
   } else {
     const {a,b}=sel;
-    box.innerHTML=`<b>Arista ${a} — ${b}</b>
-      <label>Costo <input id="selC" type="number" min="0" step="any" value="${G.adj[a][b]}"></label>
-      <button id="selDel" class="mini danger">🗑 Borrar arista</button>`;
+    box.innerHTML=`<div class="ih"><b>Arista ${a} — ${b}</b><button class="ix" id="iClose" aria-label="Cerrar (Esc)">${ic('x')}</button></div>
+      <div class="if"><label>Costo<input id="selC" type="number" min="0" step="any" value="${G.adj[a][b]}"></label></div>
+      <div class="ia"><button id="selDel" class="mini danger">${ic('trash')}Borrar arista</button></div>`;
     $('selC').oninput=e=>{
       const c=parseFloat(e.target.value);
       if(isNaN(c)||c<0){ e.target.classList.add('bad'); return; }
       e.target.classList.remove('bad'); G.adj[a][b]=G.adj[b][a]=c; actualizar('sel');
     };
   }
+  $('iClose').onclick=()=>seleccionar(null);
   $('selDel').onclick=borrarSel;
+  posInspector();
 }
+function posInspector(){
+  const box=$('insp'); if(box.hidden||!sel) return;
+  const W=$('canvas').clientWidth, H=$('svg').clientHeight, s=W/700;
+  box.classList.toggle('dock',W<480);          // en pantallas angostas va debajo del lienzo
+  if(W<480) return;
+  let ax,ay,off;
+  if(sel.t==='n'){ const p=G.pos[sel.v]; ax=p.x*s; ay=p.y*s; off=50*s; }
+  else { const A=G.pos[sel.a],B=G.pos[sel.b]; ax=(A.x+B.x)/2*s; ay=(A.y+B.y)/2*s; off=18*s; }
+  const w=box.offsetWidth, h=box.offsetHeight;
+  let top=ay+off; if(top+h>H-8) top=ay-off-h;
+  box.style.top=Math.max(8,Math.min(H-h-8,top))+'px';
+  box.style.left=Math.max(8,Math.min(W-w-8,ax-w/2))+'px';
+}
+addEventListener('resize',posInspector);
 
 function nuevoNodo(p){
   let v=[...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].find(c=>!G.names.includes(c));
@@ -213,7 +269,7 @@ function crearArista(a,b){
     const d=Math.hypot(G.pos[a].x-G.pos[b].x,G.pos[a].y-G.pos[b].y);
     G.adj[a][b]=G.adj[b][a]=Math.max(1,Math.round(d/50));   // costo sugerido según la distancia
   }
-  sel={t:'e',a,b}; actualizar();
+  sel={t:'e',a,b}; cursor=null; actualizar();
   $('selC').focus(); $('selC').select();
 }
 function renombrar(a,b){
@@ -238,6 +294,7 @@ function borrarSel(){
   delete G.pos[v]; delete G.h[v]; delete G.adj[v];
   for(const w of G.names) delete G.adj[w][v];
   sel=null; actualizar();
+  aviso(`Nodo ${v} borrado.`);
 }
 
 // coordenadas del mouse dentro del viewBox del SVG
@@ -254,10 +311,15 @@ $('svg').addEventListener('pointerdown',e=>{
   nuevoNodo(p);
 });
 $('svg').addEventListener('pointermove',e=>{
-  if(!drag) return;
+  if(!edit) return;
   const p=svgPt(e);
+  if(!drag){   // arista fantasma que sigue al cursor mientras hay un nodo seleccionado
+    if(sel&&sel.t==='n'){ cursor=p; const gl=$('ghost');
+      if(gl){ gl.setAttribute('x2',p.x); gl.setAttribute('y2',p.y); } else dibujar(steps[k]); }
+    return;
+  }
   if(!drag.moved && Math.hypot(p.x-drag.p0.x,p.y-drag.p0.y)<4) return;
-  drag.moved=true; G.pos[drag.v]=clampPos(p); dibujar(steps[k]);
+  drag.moved=true; cursor=null; G.pos[drag.v]=clampPos(p); dibujar(steps[k]); posInspector();
 });
 $('svg').addEventListener('pointerup',()=>{
   if(!drag) return;
@@ -266,21 +328,14 @@ $('svg').addEventListener('pointerup',()=>{
   if(sel&&sel.t==='n'&&sel.v!==v) crearArista(sel.v,v);   // nodo seleccionado + clic en otro = arista
   else seleccionar(sel&&sel.t==='n'&&sel.v===v ? null : {t:'n',v});
 });
+$('svg').addEventListener('pointerleave',()=>{ if(cursor){ cursor=null; $('ghost')?.remove(); } });
 
-$('edToggle').onclick=()=>{
-  edit=!edit;
-  $('edToggle').classList.toggle('on',edit);
-  $('edToggle').textContent= edit ? '✔ Terminar edición' : '✏️ Editar grafo';
-  $('edBar').hidden=!edit; $('svg').classList.toggle('editing',edit);
-  if(!edit) sel=null;
-  panelSel(); dibujar(steps[k]);
-};
 $('edClear').onclick=()=>{
   if(G.names.length && !confirm('¿Borrar todo el grafo actual y empezar uno vacío?')) return;
   G={names:[],pos:{},adj:{},h:{},hAuto:false}; sel=null; actualizar();
 };
-$('edH').onclick=()=>{ hAleatoria(); actualizar(); };
-$('edH0').onclick=()=>{ G.names.forEach(v=>G.h[v]=0); G.hAuto=false; actualizar(); };
+$('edH').onclick=()=>{ hAleatoria(); actualizar(); aviso('Heurísticas admisibles generadas.'); };
+$('edH0').onclick=()=>{ G.names.forEach(v=>G.h[v]=0); G.hAuto=false; actualizar(); aviso('h(n) = 0 en todos los nodos.'); };
 
 // ---------- Guardar / exportar / importar ----------
 function exportar(){
@@ -393,11 +448,14 @@ function dibujar(st){
     const on=sel&&sel.t==='e'&&((sel.a===a&&sel.b===b)||(sel.a===b&&sel.b===a));
     s+=`<g data-a="${a}" data-b="${b}">`;
     if(edit) s+=`<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="transparent" stroke-width="16"/>`;
-    s+=`<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="${on?'#f59e0b':ok?'#16a34a':'#9aa3b2'}" stroke-width="${on||ok?5:2}"/>`;
+    s+=`<line class="el" x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="${on?'#f59e0b':ok?'#16a34a':'#9aa3b2'}" stroke-width="${on||ok?5:2}"/>`;
     const mx=(A.x+B.x)/2,my=(A.y+B.y)/2, lw=8+String(c).length*7;
     s+=`<rect x="${mx-lw/2}" y="${my-10}" width="${lw}" height="18" rx="4" fill="#fff" stroke="${on?'#f59e0b':'#d9dde3'}"/>
         <text x="${mx}" y="${my+4}" font-size="12" text-anchor="middle" fill="#374151">${c}</text></g>`;
   }
+  // arista "fantasma": del nodo seleccionado al cursor (vista previa de la nueva arista)
+  if(edit&&sel&&sel.t==='n'&&cursor){ const A=pos[sel.v];
+    s+=`<line id="ghost" x1="${A.x}" y1="${A.y}" x2="${cursor.x}" y2="${cursor.y}" stroke="#2563eb" stroke-width="2" stroke-dasharray="6 5" stroke-linecap="round" pointer-events="none"/>`; }
   for(const v of G.names){
     const p=pos[v];
     let fill='#fff';
@@ -407,8 +465,8 @@ function dibujar(st){
     if(st&&st.cur===v) fill='#fcd34d';
     const fs=v.length>2?12:v.length>1?15:18;
     s+=`<g data-n="${v}">`;
-    if(sel&&sel.t==='n'&&sel.v===v) s+=`<circle cx="${p.x}" cy="${p.y}" r="32" fill="#dbeafe" stroke="#3b82f6" stroke-width="2" stroke-dasharray="5 4"/>`;
-    s+=`<circle cx="${p.x}" cy="${p.y}" r="22" fill="${fill}" stroke="${v===meta?'#dc2626':'#1d2330'}" stroke-width="${v===meta?4:2}"/>`;
+    if(sel&&sel.t==='n'&&sel.v===v) s+=`<circle cx="${p.x}" cy="${p.y}" r="32" fill="#dbeafe" stroke="#2563eb" stroke-width="2" stroke-dasharray="5 4"/>`;
+    s+=`<circle class="nc" cx="${p.x}" cy="${p.y}" r="22" fill="${fill}" stroke="${v===meta?'#dc2626':'#1d2330'}" stroke-width="${v===meta?4:2}"/>`;
     if(v===meta) s+=`<circle cx="${p.x}" cy="${p.y}" r="27" fill="none" stroke="#dc2626" stroke-width="1.5"/>`;
     s+=`<text x="${p.x}" y="${p.y+fs/3}" font-size="${fs}" font-weight="bold" text-anchor="middle">${v}</text>
         <text x="${p.x}" y="${p.y+42}" font-size="11" text-anchor="middle" fill="#7c3aed">h=${h[v]}</text>`;
@@ -517,7 +575,7 @@ function correr(){
   const alg=$('alg').value;
   if(G.names.length){ steps=buscar(alg,$('sI').value,$('sM').value); TP=layoutArbol(steps.T); }
   else {
-    steps=[{msg:'Grafo vacío: con ✏️ Editar grafo haz clic en el lienzo para crear nodos.',cur:null,fr:[],closed:[],
+    steps=[{msg:'Grafo vacío: cambia a modo Editar y haz clic en el lienzo para crear nodos.',cur:null,fr:[],closed:[],
             exp:0,cre:0,expanded:[],tn:0,expIds:[],frIds:[],curId:null,disc:[],repl:[]}];
     steps.T=[]; TP=null;
   }
@@ -545,14 +603,17 @@ function mostrar(){
   } else if(st.fail){ res.style.display='block'; res.style.background='#fee2e2'; res.textContent='❌ No se encontró solución.'; }
   else res.style.display='none';
   $('hist').querySelectorAll('tr').forEach(tr=>tr.classList.toggle('on',+tr.dataset.i===k));
-  const on=$('hist').querySelector('tr.on'); if(on) on.scrollIntoView({block:'nearest'});
+  // desplaza solo la caja del historial (scrollIntoView movía toda la página)
+  const on=$('hist').querySelector('tr.on'), hb=$('hist').parentElement;
+  if(on){ const t=on.offsetTop, b=t+on.offsetHeight;
+    if(t<hb.scrollTop) hb.scrollTop=t; else if(b>hb.scrollTop+hb.clientHeight) hb.scrollTop=b-hb.clientHeight; }
 }
 
-function parar(){ clearInterval(timer); timer=null; $('bPlay').innerHTML='▶<span class="tx"> Reproducir</span>'; }
+function parar(){ clearInterval(timer); timer=null; $('bPlay').innerHTML=`${ic('play')}<span class="tx">Reproducir</span>`; }
 function play(){
   if(timer){parar();return;}
   if(k>=steps.length-1) k=0;
-  $('bPlay').innerHTML='⏸<span class="tx"> Pausa</span>';
+  $('bPlay').innerHTML=`${ic('pause')}<span class="tx">Pausa</span>`;
   const tick=()=>{ if(k<steps.length-1){k++;mostrar();} else parar(); };
   timer=setInterval(tick,+$('spd').value);
 }
@@ -567,20 +628,21 @@ $('alg').onchange=correr;
 $('sI').onchange=()=>{ guardar(); correr(); };
 $('sM').onchange=()=>{ if(G.hAuto) hAleatoria(); actualizar(); };
 document.addEventListener('keydown',e=>{
+  if(edit&&sel&&e.key==='Escape'){ e.target.blur?.(); seleccionar(null); return; }
   if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)) return;
   if(e.key==='ArrowRight') $('bNext').click();
   if(e.key==='ArrowLeft') $('bPrev').click();
   if(e.key===' '){e.preventDefault();play();}
   if(edit&&sel&&(e.key==='Delete'||e.key==='Backspace')){ e.preventDefault(); borrarSel(); }
-  if(edit&&e.key==='Escape') seleccionar(null);
 });
 $('treeFit').onclick=()=>{
   treeFit=!treeFit;
-  $('treeFit').textContent= treeFit ? '🔍 Tamaño real' : '↔ Ajustar a pantalla';
+  $('treeFit').innerHTML= treeFit ? `${ic('zoom')}Tamaño real` : `${ic('fit')}Ajustar a pantalla`;
   dibujarArbol(steps[k],$('alg').value);
 };
 // por defecto se ajusta en móvil y se ve a tamaño real en pantallas grandes
-if(window.innerWidth>900){ treeFit=false; $('treeFit').textContent='↔ Ajustar a pantalla'; }
+if(window.innerWidth>900) treeFit=false;
+$('treeFit').innerHTML= treeFit ? `${ic('zoom')}Tamaño real` : `${ic('fit')}Ajustar a pantalla`;
 
 // contador de estrellas del repo (si la API de GitHub no responde, solo se oculta)
 fetch('https://api.github.com/repos/EdgarG1013/Algoritmos-de-b-squeda')

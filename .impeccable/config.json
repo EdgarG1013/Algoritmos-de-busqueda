@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "codex-grid-background",
+        "value": "*",
+        "files": [
+          "css/styles.css"
+        ],
+        "createdAt": "2026-11-02T19:25:11.171Z",
+        "reason": "assistant decision: .nb imitates the professor's graph-paper notebook; grid is the intended material"
+      }
+    ]
+  }
+}
